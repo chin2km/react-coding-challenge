@@ -1,4 +1,9 @@
 var HtmlWebpackPlugin = require('html-webpack-plugin');
+const CopyWebpackPlugin = require('copy-webpack-plugin');
+const UglifyJsPlugin = require('uglifyjs-webpack-plugin');
+const WorkboxPlugin = require('workbox-webpack-plugin');
+const CompressionPlugin = require('compression-webpack-plugin');
+const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 
 module.exports = {
   entry: './src/index.jsx',
@@ -7,6 +12,48 @@ module.exports = {
     publicPath: '/',
     filename: 'bundle.js'
   },
+  plugins: [
+    new HtmlWebpackPlugin({
+      inject: false,
+      template: './src/view/template.ejs',
+      mobile: true,
+      title: 'Books Inventory!',
+      meta: [
+        {
+          name: 'viewport',
+          content: 'width=device-width, initial-scale=1'
+        },
+        {
+          name: 'theme-color',
+          content: '#000'
+        }
+      ],
+      links: [
+        'https://fonts.googleapis.com/css?family=Lato&display=swap',
+        {
+          href: '/manifest.json',
+          rel: 'manifest'
+        }
+      ]
+    }),
+    new MiniCssExtractPlugin({
+      filename: '[name].css',
+      chunkFilename: '[id].css'
+    }),
+    new WorkboxPlugin.GenerateSW(),
+    new CopyWebpackPlugin([
+      {
+        from: 'public',
+        to: '.'
+      }
+    ]),
+    new CompressionPlugin({
+      algorithm: 'gzip',
+      compressionOptions: { level: 9 },
+      test: /\.(js|css|html|svg)$/,
+      cache: true
+    })
+  ],
   module: {
     rules: [
       {
@@ -18,7 +65,12 @@ module.exports = {
       },
       {
         test: /\.css$/,
-        use: ['style-loader', 'css-loader']
+        use: [
+          {
+            loader: MiniCssExtractPlugin.loader
+          },
+          'css-loader'
+        ]
       }
     ]
   },
@@ -28,20 +80,24 @@ module.exports = {
   devServer: {
     contentBase: './dist'
   },
-  plugins: [
-    new HtmlWebpackPlugin({
-      inject: false,
-      template: './src/view/template.ejs',
-      mobile: true,
-      title: 'Books Inventory!',
-      links: [
-        'https://fonts.googleapis.com/css?family=Lato',
-        {
-          href: '/apple-touch-icon.png',
-          rel: 'apple-touch-icon',
-          sizes: '180x180'
+  optimization: {
+    minimizer: [
+      new UglifyJsPlugin({
+        uglifyOptions: {
+          warnings: false,
+          parse: {},
+          compress: {},
+          mangle: true,
+          output: null,
+          toplevel: false,
+          nameCache: null,
+          ie8: false,
+          keep_fnames: false
         }
-      ]
-    })
-  ]
+      })
+    ],
+    splitChunks: {
+      chunks: 'all'
+    }
+  }
 };
